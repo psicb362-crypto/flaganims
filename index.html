@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flag Atelier V10 | Vanille Antique</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Exporters for 3D formats -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/OBJExporter.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;1,6..96,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* V10 Palette: Byredo Vanille Antique */
+            --glass-bg: rgba(30, 25, 20, 0.85); 
+            --glass-border: rgba(180, 140, 100, 0.2);
+            --accent-main: #D4AF37; /* Antique Gold */
+            --accent-dim: #8B5E3C; /* Smoked Wood */
+            --text-main: #E5D4C0; /* Vanilla Cream */
+            --text-sub: #A68B76;  /* Taupe */
+            --bg-grad-start: #2C241E;
+            --bg-grad-end: #0F0B09;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at center, var(--bg-grad-start) 0%, var(--bg-grad-end) 100%);
+            color: var(--text-main);
+            overflow: hidden;
+            transition: background 1s ease;
+        }
+
+        h1, h2, h3, .serif-font { font-family: 'Bodoni Moda', serif; }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(40px) brightness(90%);
+            -webkit-backdrop-filter: blur(40px) brightness(90%);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.6);
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-thumb { background: var(--accent-dim); border-radius: 10px; }
+
+        .input-elegant {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            color: var(--text-main);
+            transition: all 0.3s ease;
+        }
+        .input-elegant:focus {
+            border-color: var(--accent-main);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.1);
+            outline: none;
+        }
+        select option { background: #1E1914; color: var(--text-main); }
+
+        /* Antique Slider */
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 12px; width: 12px;
+            border-radius: 50%; background: var(--accent-main);
+            border: 1px solid #000;
+            margin-top: -5px; cursor: pointer;
+            box-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 2px;
+            cursor: pointer; background: rgba(212, 175, 55, 0.3);
+        }
+        
+        #loader {
+            position: fixed; inset: 0; background: #0F0B09; z-index: 50;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+            transition: opacity 1.2s ease;
+        }
+        .hidden-loader { opacity: 0; pointer-events: none; }
+        
+        .btn-antique {
+            background: linear-gradient(135deg, #4A3B32 0%, #2C241E 100%);
+            color: var(--accent-main);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            font-family: 'Bodoni Moda', serif;
+            letter-spacing: 0.1em;
+            transition: all 0.3s ease;
+        }
+        .btn-antique:hover {
+            background: linear-gradient(135deg, #5D4A3F 0%, #3E3229 100%);
+            border-color: var(--accent-main);
+            box-shadow: 0 5px 20px -5px rgba(0,0,0,0.5);
+        }
+        
+        .btn-gold-action {
+            background: linear-gradient(135deg, #C5A059 0%, #8B6B36 100%);
+            color: #0F0B09;
+            font-weight: 600;
+            text-shadow: 0 1px 0px rgba(255,255,255,0.1);
+        }
+        .btn-gold-action:hover {
+            background: linear-gradient(135deg, #D4AF37 0%, #A68045 100%);
+            box-shadow: 0 0 25px rgba(212, 175, 55, 0.25);
+        }
+
+        .modal-overlay {
+            background: rgba(15, 11, 9, 0.9);
+            backdrop-filter: blur(12px);
+        }
+
+        #canvas-container { width: 100%; height: 100%; position: absolute; inset: 0; z-index: 0; }
+        
+        .code-block {
+            background: #14100E;
+            border: 1px solid #3E3229;
+            color: #E5D4C0;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            padding: 14px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex relative" id="main-body">
+
+    <!-- Loading Screen -->
+    <div id="loader">
+        <div class="serif-font text-5xl text-[#D4AF37] mb-4 animate-pulse tracking-widest italic">Vanille Antique</div>
+        <p class="text-[#8B5E3C] text-[10px] tracking-[0.6em] uppercase font-bold">Atelier Version X</p>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <!-- Help/Script Modal -->
+    <div id="help-modal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-500">
+        <div class="glass-panel w-[650px] max-w-[90vw] max-h-[85vh] rounded-none border-l-2 border-l-[#D4AF37] flex flex-col overflow-hidden transform scale-95 transition-transform duration-500" id="help-content">
+            <div class="p-6 border-b border-[#D4AF37]/20 bg-black/40 flex justify-between items-center">
+                <h2 class="serif-font text-xl text-[#D4AF37] italic">Integration Protocol</h2>
+                <button id="close-help" class="text-[#8B5E3C] hover:text-[#D4AF37]"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-8 overflow-y-auto text-[#A68B76] space-y-6 text-sm">
+                
+                <div class="space-y-2">
+                    <div class="flex justify-between items-end">
+                        <h3 class="text-[#D4AF37] font-bold uppercase tracking-widest text-[10px]">Smart Attribute Script</h3>
+                        <button id="copy-script-btn" class="text-[10px] text-[#E5D4C0] hover:text-[#D4AF37] font-bold uppercase flex items-center gap-1 transition-colors">
+                            <i data-lucide="copy" class="w-3 h-3"></i> Copy Code
+                        </button>
+                    </div>
+                    <p class="text-xs opacity-70 mb-2 font-light">
+                        V10 Logic: This script uses <strong class="text-[#D4AF37]">Attributes</strong>. After pasting, you can change the speed directly in the Properties panel without opening the script again.
+                    </p>
+                    <div class="code-block" id="roblox-script">-- Script loading...</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 pt-4 border-t border-[#D4AF37]/10">
+                    <div>
+                        <h4 class="text-[#D4AF37] text-[10px] uppercase mb-2">Export Type A: Stop-Motion</h4>
+                        <p class="text-xs opacity-70 leading-relaxed">Best for retro aesthetic or zero-glitch reliability. Uses the script above. High memory usage if frame count is 32+.</p>
+                    </div>
+                    <div>
+                        <h4 class="text-[#D4AF37] text-[10px] uppercase mb-2">Export Type B: Smooth Loop</h4>
+                        <p class="text-xs opacity-70 leading-relaxed">Uses Morph Targets. Requires uploading animation to Roblox to get an ID. Most efficient for performance.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Controls -->
+    <aside class="absolute left-6 top-6 bottom-6 w-96 glass-panel rounded-none border-r border-r-[#D4AF37]/30 flex flex-col z-10 overflow-hidden transform transition-transform duration-500 ease-out" id="sidebar">
+        <!-- Header -->
+        <div class="p-8 border-b border-[#D4AF37]/20 bg-black/20 relative">
+            <h1 class="serif-font text-3xl text-[#D4AF37] italic tracking-tight">Atelier X</h1>
+            <button id="open-help" class="absolute top-9 right-8 text-[#8B5E3C] hover:text-[#D4AF37] transition-colors" title="Get Script">
+                <i data-lucide="file-code" class="w-5 h-5"></i>
+            </button>
+            <div class="flex justify-between items-end mt-2">
+                <p class="text-[9px] text-[#8B5E3C] uppercase tracking-[0.3em]">Vanille Antique</p>
+            </div>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto p-8 space-y-10">
+            
+            <!-- Texture Upload -->
+            <div class="space-y-4">
+                <label class="flex justify-between text-[9px] font-bold text-[#A68B76] uppercase tracking-widest">
+                    <span>1. Textile & Weave</span>
+                    <i data-lucide="image" class="w-3 h-3 opacity-50"></i>
+                </label>
+                <div class="relative group">
+                    <div class="absolute inset-0 bg-[#D4AF37]/5 transition-colors group-hover:bg-[#D4AF37]/10"></div>
+                    <label for="texture-upload" class="relative flex flex-col items-center justify-center w-full h-32 border border-dashed border-[#8B5E3C] cursor-pointer hover:border-[#D4AF37] transition-all duration-500">
+                        <div class="text-center p-4">
+                            <span class="serif-font text-lg text-[#E5D4C0] italic opacity-80 group-hover:opacity-100 transition-opacity">Import</span>
+                            <span class="text-[9px] block text-[#8B5E3C] mt-1 uppercase tracking-widest font-light" id="file-name">Select Image Source</span>
+                        </div>
+                        <input type="file" id="texture-upload" accept="image/*" class="hidden">
+                    </label>
+                </div>
+                
+                <div class="flex items-center justify-between px-1">
+                    <span class="text-[9px] text-[#8B5E3C] uppercase tracking-wider">Scale</span>
+                    <input type="range" id="tex-scale" min="0.5" max="3" step="0.1" value="1.0" class="w-24">
+                </div>
+            </div>
+
+            <!-- Mesh Selector -->
+            <div class="space-y-4">
+                <label class="block text-[9px] font-bold text-[#A68B76] uppercase tracking-widest">2. Form & Structure</label>
+                <select id="mesh-select" class="w-full p-3 rounded-none input-elegant text-xs font-light text-[#E5D4C0] uppercase tracking-wider cursor-pointer">
+                    <optgroup label="Standard Cuts">
+                        <option value="standard">Standard (2:3)</option>
+                        <option value="wide">Imperial (1:2)</option>
+                        <option value="square">Royal Square (1:1)</option>
+                    </optgroup>
+                    <optgroup label="Shaped Flies">
+                        <option value="chevron_point">Chevron Point</option>
+                        <option value="oblique">Oblique Cut</option>
+                        <option value="round_fly">Rounded Fly</option>
+                        <option value="pennant">Pennant</option>
+                        <option value="swallowtail">Swallowtail</option>
+                        <option value="burgee">Burgee</option>
+                    </optgroup>
+                    <optgroup label="Ceremonial">
+                        <option value="gonfalon">Gonfalon (Triple)</option>
+                        <option value="shield">Heraldic Shield</option>
+                        <option value="streamer">Streamer</option>
+                        <option value="vertical">Vertical Standard</option>
+                        <option value="banner_round">Banner (Round)</option>
+                        <option value="banner_point">Banner (Point)</option>
+                    </optgroup>
+                </select>
+
+                <!-- Hardware Selection -->
+                <div class="flex gap-2">
+                    <button class="flex-1 py-2 border border-[#8B5E3C]/50 text-[#A68B76] text-[9px] uppercase hover:border-[#D4AF37] hover:text-[#E5D4C0] transition-colors pole-mat-btn" data-mat="gold">Gold</button>
+                    <button class="flex-1 py-2 border border-[#8B5E3C]/50 text-[#A68B76] text-[9px] uppercase hover:border-[#D4AF37] hover:text-[#E5D4C0] transition-colors pole-mat-btn" data-mat="silver">Silver</button>
+                    <button class="flex-1 py-2 border border-[#8B5E3C]/50 text-[#A68B76] text-[9px] uppercase hover:border-[#D4AF37] hover:text-[#E5D4C0] transition-colors pole-mat-btn" data-mat="wood">Oak</button>
+                </div>
+                
+                <div class="flex justify-between items-center px-1">
+                    <span class="text-[9px] text-[#8B5E3C] uppercase tracking-wider">Mesh Fidelity</span>
+                    <select id="mesh-quality" class="bg-transparent border-none text-[#D4AF37] text-[9px] uppercase text-right focus:outline-none cursor-pointer">
+                        <option value="low">Optimized (Low)</option>
+                        <option value="medium" selected>Standard (Med)</option>
+                        <option value="high">Cinema (High)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Dynamics -->
+            <div class="space-y-6">
+                <div class="flex items-center justify-between border-b border-[#D4AF37]/20 pb-2">
+                    <label class="block text-[9px] font-bold text-[#A68B76] uppercase tracking-widest">3. Physics & Atmosphere</label>
+                </div>
+                
+                <div class="space-y-6 px-1">
+                    <!-- Wind Style -->
+                    <div class="flex gap-1 bg-[#0F0B09] p-1 rounded-sm">
+                        <button class="wind-btn flex-1 py-1.5 text-[9px] text-[#8B5E3C] hover:text-[#E5D4C0] uppercase transition-colors" data-style="breeze">Breeze</button>
+                        <button class="wind-btn flex-1 py-1.5 text-[9px] bg-[#D4AF37]/10 text-[#D4AF37] font-bold uppercase transition-colors" data-style="steady">Steady</button>
+                        <button class="wind-btn flex-1 py-1.5 text-[9px] text-[#8B5E3C] hover:text-[#E5D4C0] uppercase transition-colors" data-style="gale">Gale</button>
+                    </div>
+
+                    <!-- Sliders -->
+                    <div class="space-y-4">
+                        <div class="relative">
+                            <div class="flex justify-between mb-1">
+                                <label class="text-[8px] text-[#8B5E3C] uppercase tracking-widest">Wind Velocity</label>
+                                <span class="text-[8px] text-[#D4AF37] font-mono" id="wind-disp">1.0</span>
+                            </div>
+                            <input type="range" id="wind-speed" min="0.1" max="3" step="0.1" value="1.0" class="w-full">
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="relative">
+                                <label class="block text-[8px] text-[#8B5E3C] uppercase mb-1">Wave Depth</label>
+                                <input type="range" id="wave-depth" min="0" max="2" step="0.1" value="0.7" class="w-full">
+                            </div>
+                            <div class="relative">
+                                <label class="block text-[8px] text-[#8B5E3C] uppercase mb-1">Exposure</label>
+                                <input type="range" id="exposure" min="0.5" max="2" step="0.1" value="1.1" class="w-full">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-8 border-t border-[#D4AF37]/20 bg-black/40 backdrop-blur-md space-y-4">
+            <!-- Mode Switch -->
+            <div class="flex bg-[#0F0B09] p-1 rounded-sm">
+                <button class="export-mode-btn flex-1 py-2 text-[9px] bg-[#D4AF37]/20 text-[#D4AF37] uppercase font-bold transition-all" data-mode="stop-motion">Stop-Motion</button>
+                <button class="export-mode-btn flex-1 py-2 text-[9px] text-[#8B5E3C] hover:text-[#E5D4C0] uppercase transition-all" data-mode="smooth">Smooth Loop</button>
+            </div>
+
+            <!-- Contextual Settings -->
+            <div id="stop-motion-settings" class="flex items-center justify-between px-1">
+                <span class="text-[9px] text-[#8B5E3C] uppercase">Frame Count</span>
+                <div class="flex gap-3 text-[9px] font-mono text-[#E5D4C0]">
+                    <label class="cursor-pointer hover:text-[#D4AF37]"><input type="radio" name="frame-count" value="16" class="accent-[#D4AF37]"> 16</label>
+                    <label class="cursor-pointer hover:text-[#D4AF37]"><input type="radio" name="frame-count" value="24" checked class="accent-[#D4AF37]"> 24</label>
+                    <label class="cursor-pointer hover:text-[#D4AF37]"><input type="radio" name="frame-count" value="32" class="accent-[#D4AF37]"> 32</label>
+                </div>
+            </div>
+
+            <button id="download-mesh" class="btn-gold-action w-full py-4 shadow-[0_0_20px_rgba(212,175,55,0.15)] transition-all transform flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] border border-[#D4AF37]/50">
+                <i data-lucide="package" class="w-3 h-3"></i> Export Asset
+            </button>
+        </div>
+    </aside>
+
+    <div class="absolute right-8 top-8 glass-panel border-r-2 border-r-[#D4AF37] p-5 hidden md:block z-10">
+        <p class="serif-font text-2xl text-[#D4AF37] italic">V10</p>
+        <p class="text-[8px] text-[#8B5E3C] uppercase tracking-[0.4em] mt-1 text-right">Vanille Antique</p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            updateRobloxScript();
+        });
+
+        // --- Three.js Setup ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x0F0B09, 0.02); 
+        
+        const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 0, 7.5);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+        renderer.toneMappingExposure = 1.1;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        // --- PBR Lighting Studio ---
+        const ambientLight = new THREE.AmbientLight(0x4A3B32, 1.0); // Warm chocolate ambient
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xFFE0B2, 1.5); // Golden Sun
+        dirLight.position.set(5, 5, 8);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.bias = -0.0001;
+        scene.add(dirLight);
+        
+        const rimLight = new THREE.SpotLight(0xA68B76, 2.0);
+        rimLight.position.set(-5, 2, -2);
+        scene.add(rimLight);
+
+        // --- V10 Harmonic Engine Shader ---
+        // Features: 3-Layer wave summation for non-repetitive looking (but loopable) motion
+        const vertexShader = `
+            varying vec2 vUv;
+            varying float vElevation;
+            varying vec3 vNormal;
+            varying vec3 vViewPosition;
+            
+            uniform float uTime;
+            uniform float uSpeed;
+            uniform float uDepth;
+            uniform float uIsAnimated;
+            uniform float uTexScale;
+            uniform int uWindType;
+
+            void main() {
+                vUv = uv * uTexScale; 
+                vec3 pos = position;
+                float strength = uv.x; 
+                float elevation = 0.0;
+
+                if (uIsAnimated > 0.5) {
+                    // V10 Harmonic Engine
+                    // All frequencies must be integers relative to base phase to loop at 2PI
+                    
+                    float speedMod = uSpeed;
+                    
+                    // Layer 1: Primary Swell (Low Freq)
+                    float wave1 = sin(pos.x * 1.5 + uTime * speedMod) * 0.15;
+                    
+                    // Layer 2: Edge Flutter (High Freq, localized to edge)
+                    // 4.0 is integer multiple
+                    float flutter = sin(pos.x * 5.0 + uTime * speedMod * 3.0) * 0.04 * pow(strength, 2.0);
+                    
+                    // Layer 3: Micro Turbulence (Medium Freq)
+                    float turb = sin(pos.x * 3.0 + uTime * speedMod * 2.0 + pos.y) * 0.02;
+
+                    // Composite
+                    float combined = (wave1 + flutter + turb) * uDepth * strength;
+                    
+                    // Add slight vertical lift based on swell
+                    float lift = sin(pos.x + uTime * speedMod) * 0.03 * uDepth * strength;
+
+                    pos.z += combined;
+                    pos.y += lift;
+                    elevation = combined;
+                }
+                
+                vElevation = elevation;
+                
+                // Analytical Normal Recalculation for lighting accuracy
+                vec3 objectNormal = normal;
+                float tilt = cos(pos.x * 1.5 + uTime * uSpeed) * strength * 0.3;
+                objectNormal.x -= tilt;
+                objectNormal = normalize(objectNormal);
+
+                vNormal = normalize(normalMatrix * objectNormal);
+                vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                vViewPosition = -mvPosition.xyz;
+                gl_Position = projectionMatrix * mvPosition;
+            }
+        `;
+
+        const fragmentShader = `
+            varying vec2 vUv;
+            varying float vElevation;
+            varying vec3 vNormal;
+            varying vec3 vViewPosition;
+            uniform sampler2D uTexture;
+            uniform float uExposure;
+
+            void main() {
+                vec4 texColor = texture2D(uTexture, vUv);
+                if (texColor.a < 0.1) discard;
+                
+                vec3 normal = normalize(vNormal);
+                vec3 viewDir = normalize(vViewPosition);
+                vec3 lightDir = normalize(vec3(0.5, 0.8, 1.0));
+                
+                // Self-Shadowing approximation
+                float ao = 1.0 - (vElevation * 1.5); 
+                ao = clamp(ao, 0.6, 1.1);
+
+                // Anisotropic Silk Specular
+                vec3 tangent = normalize(cross(normal, vec3(0.0, 1.0, 0.0)));
+                float TdotH = dot(tangent, normalize(lightDir + viewDir));
+                float specStr = sqrt(1.0 - TdotH * TdotH);
+                specStr = pow(specStr, 15.0) * 0.4;
+                
+                // Velvet Rim
+                float rim = 1.0 - max(dot(viewDir, normal), 0.0);
+                rim = pow(rim, 3.0) * 0.5;
+
+                vec3 finalColor = texColor.rgb * ao;
+                vec3 goldSpec = vec3(1.0, 0.9, 0.7) * specStr * uExposure;
+                finalColor += goldSpec;
+                finalColor += vec3(0.8, 0.7, 0.6) * rim;
+
+                gl_FragColor = vec4(finalColor, texColor.a);
+            }
+        `;
+
+        const textureLoader = new THREE.TextureLoader();
+        const defaultTex = textureLoader.load('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80', (tex) => {
+             tex.encoding = THREE.sRGBEncoding;
+        });
+
+        const uniforms = {
+            uTime: { value: 0 },
+            uSpeed: { value: 1.0 },
+            uDepth: { value: 0.7 },
+            uIsAnimated: { value: 1.0 },
+            uTexScale: { value: 1.0 },
+            uWindType: { value: 1 }, 
+            uExposure: { value: 1.1 },
+            uTexture: { value: defaultTex }
+        };
+
+        const material = new THREE.ShaderMaterial({
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            uniforms: uniforms,
+            side: THREE.DoubleSide,
+            transparent: true
+        });
+
+        // --- Scene Graph ---
+        const mainGroup = new THREE.Group();
+        scene.add(mainGroup);
+
+        let flagMesh;
+        const poleGroup = new THREE.Group();
+        mainGroup.add(poleGroup);
+
+        // Hardware Materials
+        const goldMat = new THREE.MeshStandardMaterial({ color: 0xD4AF37, roughness: 0.1, metalness: 1.0 });
+        const silverMat = new THREE.MeshStandardMaterial({ color: 0xC0C0C0, roughness: 0.2, metalness: 0.9 });
+        const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x2C1B10, roughness: 0.8 }); // Smoked Oak
+        
+        let currentHardwareMat = goldMat;
+        const poleGeo = new THREE.CylinderGeometry(0.035, 0.035, 5, 32);
+        const poleMesh = new THREE.Mesh(poleGeo, darkWoodMat); 
+        poleMesh.position.x = -1.55;
+        poleMesh.castShadow = true;
+        poleGroup.add(poleMesh);
+
+        const finialGeo = new THREE.SphereGeometry(0.12, 32, 32);
+        const finialMesh = new THREE.Mesh(finialGeo, currentHardwareMat);
+        finialMesh.position.set(-1.55, 2.6, 0);
+        poleGroup.add(finialMesh);
+        
+        const capMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.02, 0.1, 16), currentHardwareMat);
+        capMesh.position.set(-1.55, -2.5, 0);
+        poleGroup.add(capMesh);
+
+        // --- Geometry Logic ---
+        function createGeometry(type, quality = 'medium') {
+            let geom;
+            let segW = 40, segH = 25; 
+            if (quality === 'high') { segW = 80; segH = 50; } // Increased High Quality
+            if (quality === 'low') { segW = 20; segH = 15; }
+
+            switch(type) {
+                case 'standard': geom = new THREE.PlaneGeometry(3, 2, segW, segH); break;
+                case 'wide': geom = new THREE.PlaneGeometry(4, 2, segW*1.2, segH); break;
+                case 'square': geom = new THREE.PlaneGeometry(2, 2, segW*0.8, segH); break;
+                case 'vertical': geom = new THREE.PlaneGeometry(1.5, 3, segW*0.5, segH*1.2); break;
+                case 'chevron_point': geom = new THREE.PlaneGeometry(3, 2, segW, segH); taperGeometry(geom, 'chevron_point'); break;
+                case 'oblique': geom = new THREE.PlaneGeometry(3, 2, segW, segH); taperGeometry(geom, 'oblique'); break;
+                case 'round_fly': geom = new THREE.PlaneGeometry(3, 2, segW, segH); taperGeometry(geom, 'round_fly'); break;
+                case 'pennant': geom = new THREE.PlaneGeometry(3, 2, segW, segH); taperGeometry(geom, 'point'); break;
+                case 'swallowtail': geom = new THREE.PlaneGeometry(3, 2, segW, segH); break;
+                case 'burgee': geom = new THREE.PlaneGeometry(3, 2, segW, segH); taperGeometry(geom, 'trapezoid'); break;
+                case 'guidon': geom = new THREE.PlaneGeometry(2.5, 2, segW, segH); break;
+                case 'banner_round': geom = new THREE.PlaneGeometry(1.5, 3, segW*0.5, segH*1.2); taperGeometry(geom, 'banner_round'); break;
+                case 'banner_point': geom = new THREE.PlaneGeometry(1.5, 3, segW*0.5, segH*1.2); taperGeometry(geom, 'banner_point'); break;
+                case 'gonfalon': geom = new THREE.PlaneGeometry(2, 3, segW*0.6, segH*1.2); taperGeometry(geom, 'gonfalon'); break;
+                case 'shield': geom = new THREE.PlaneGeometry(2, 2.5, segW*0.6, segH); taperGeometry(geom, 'shield'); break;
+                case 'streamer': geom = new THREE.PlaneGeometry(5, 0.6, segW*1.2, segH*0.4); break;
+                default: geom = new THREE.PlaneGeometry(3, 2, segW, segH);
+            }
+            return geom;
+        }
+
+        function taperGeometry(geom, style) {
+            const pos = geom.attributes.position;
+            const width = geom.parameters.width;
+            const height = geom.parameters.height;
+            for(let i=0; i<pos.count; i++){
+                const x = pos.getX(i);
+                const y = pos.getY(i);
+                const nX = (x + (width/2)) / width; 
+                
+                if (style === 'point') pos.setY(i, y * (1.0 - nX)); 
+                else if (style === 'trapezoid') pos.setY(i, y * (1.0 - nX * 0.6));
+                else if (style === 'shield') { if(y < 0) pos.setX(i, x * (1.0 + y * 0.5)); }
+                else if (style === 'chevron_point') pos.setX(i, x - Math.abs(y) * nX * 0.8);
+                else if (style === 'oblique') pos.setX(i, x - ((y + (height/2))/height) * nX * 1.0);
+                else if (style === 'round_fly') pos.setX(i, x - (y*y) * nX * 0.4);
+                else if (style === 'banner_round') {
+                    if (y < -height/2 + 0.5) pos.setY(i, y + (Math.abs(x)/(width/2))**2 * 0.5);
+                }
+                else if (style === 'banner_point') {
+                    if (y < -height/2 + 0.8) pos.setY(i, y + (Math.abs(x)/(width/2)) * 0.8);
+                }
+                else if (style === 'gonfalon') {
+                    if (y < -height/2 + 0.5) pos.setY(i, y + (Math.cos(x * 5.0) + 1.0) * 0.2); 
+                }
+            }
+            geom.computeVertexNormals();
+        }
+
+        function updateMesh() {
+            const type = document.getElementById('mesh-select').value;
+            const quality = document.getElementById('mesh-quality').value;
+            
+            if(flagMesh) mainGroup.remove(flagMesh);
+            const geom = createGeometry(type, quality);
+            flagMesh = new THREE.Mesh(geom, material);
+            flagMesh.castShadow = true;
+            mainGroup.add(flagMesh);
+            
+            if (['vertical','banner_round','banner_point','gonfalon'].includes(type)) {
+                poleGroup.position.x = 0.75;
+                poleMesh.scale.y = 1.0;
+            } else if (type === 'streamer') {
+                poleGroup.position.x = -2.5;
+            } else {
+                poleGroup.position.x = 0;
+            }
+        }
+
+        updateMesh(); 
+
+        // --- Interaction ---
+        let isDragging = false;
+        let prevPos = {x:0, y:0};
+        const onStart = (x, y) => { isDragging = true; prevPos = {x, y}; };
+        const onEnd = () => { isDragging = false; };
+        const onMove = (x, y) => {
+            if(!isDragging) return;
+            const dx = x - prevPos.x;
+            const dy = y - prevPos.y;
+            mainGroup.rotation.y += dx * 0.005;
+            mainGroup.rotation.x += dy * 0.005;
+            prevPos = {x, y};
+        };
+
+        window.addEventListener('mousedown', e => onStart(e.clientX, e.clientY));
+        window.addEventListener('mouseup', onEnd);
+        window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+        window.addEventListener('wheel', e => camera.position.z += e.deltaY * 0.01);
+
+        // --- UI Logic ---
+        const fileInput = document.getElementById('texture-upload');
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('file-name').textContent = file.name.substring(0,15)+'...';
+            const objectURL = URL.createObjectURL(file);
+            new THREE.TextureLoader().load(objectURL, (tex) => {
+                tex.encoding = THREE.sRGBEncoding;
+                tex.minFilter = THREE.LinearFilter; 
+                tex.generateMipmaps = false; 
+                tex.wrapS = THREE.RepeatWrapping;
+                tex.wrapT = THREE.RepeatWrapping;
+                if (material.uniforms.uTexture.value) material.uniforms.uTexture.value.dispose();
+                material.uniforms.uTexture.value = tex;
+                material.needsUpdate = true;
+            });
+        });
+
+        document.getElementById('mesh-select').addEventListener('change', updateMesh);
+        document.getElementById('mesh-quality').addEventListener('change', updateMesh);
+        
+        document.getElementById('wave-depth').addEventListener('input', e => uniforms.uDepth.value = parseFloat(e.target.value));
+        document.getElementById('exposure').addEventListener('input', e => {
+            uniforms.uExposure.value = parseFloat(e.target.value);
+            renderer.toneMappingExposure = parseFloat(e.target.value);
+        });
+        document.getElementById('tex-scale').addEventListener('input', e => uniforms.uTexScale.value = parseFloat(e.target.value));
+        
+        // Pole Material
+        document.querySelectorAll('.pole-mat-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const mat = e.target.dataset.mat;
+                if (mat === 'gold') updatePoleMaterial(goldMat);
+                if (mat === 'silver') updatePoleMaterial(silverMat);
+                if (mat === 'wood') updatePoleMaterial(darkWoodMat);
+            });
+        });
+
+        // Wind Speed updates script
+        document.getElementById('wind-speed').addEventListener('input', (e) => {
+            uniforms.uSpeed.value = parseFloat(e.target.value);
+            document.getElementById('wind-disp').textContent = parseFloat(e.target.value).toFixed(1);
+            updateRobloxScript();
+        });
+
+        // Frame count updates script
+        const frameRadios = document.querySelectorAll('input[name="frame-count"]');
+        frameRadios.forEach(r => r.addEventListener('change', updateRobloxScript));
+
+        // Wind Presets
+        document.querySelectorAll('.wind-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.wind-btn').forEach(b => {
+                     b.classList.remove('bg-[#D4AF37]/10', 'text-[#D4AF37]', 'font-bold');
+                     b.classList.add('text-[#8B5E3C]');
+                });
+                e.target.classList.add('bg-[#D4AF37]/10', 'text-[#D4AF37]', 'font-bold');
+                const style = e.target.dataset.style;
+                if(style === 'breeze') { uniforms.uWindType.value = 0; uniforms.uSpeed.value = 0.5; }
+                else if(style === 'gale') { uniforms.uWindType.value = 2; uniforms.uSpeed.value = 1.8; }
+                else { uniforms.uWindType.value = 1; uniforms.uSpeed.value = 1.0; }
+                document.getElementById('wind-speed').value = uniforms.uSpeed.value;
+                document.getElementById('wind-disp').textContent = uniforms.uSpeed.value.toFixed(1);
+                updateRobloxScript();
+            });
+        });
+
+        // Export Mode Toggles
+        const modeBtns = document.querySelectorAll('.export-mode-btn');
+        const settingsDiv = document.getElementById('stop-motion-settings');
+        let currentMode = 'stop-motion';
+        
+        modeBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                currentMode = e.target.dataset.mode;
+                modeBtns.forEach(b => {
+                    b.classList.remove('bg-[#D4AF37]/20', 'text-[#D4AF37]', 'font-bold');
+                    b.classList.add('text-[#8B5E3C]');
+                });
+                e.target.classList.add('bg-[#D4AF37]/20', 'text-[#D4AF37]', 'font-bold');
+                e.target.classList.remove('text-[#8B5E3C]');
+                
+                settingsDiv.style.opacity = currentMode === 'stop-motion' ? '1' : '0.3';
+                settingsDiv.style.pointerEvents = currentMode === 'stop-motion' ? 'auto' : 'none';
+            });
+        });
+
+        // Modal
+        const helpModal = document.getElementById('help-modal');
+        const helpContent = document.getElementById('help-content');
+        document.getElementById('open-help').addEventListener('click', () => {
+            helpModal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                helpModal.classList.remove('opacity-0');
+                helpContent.classList.remove('scale-95');
+                helpContent.classList.add('scale-100');
+            });
+        });
+        document.getElementById('close-help').addEventListener('click', () => {
+            helpModal.classList.add('opacity-0');
+            helpContent.classList.remove('scale-100');
+            helpContent.classList.add('scale-95');
+            setTimeout(() => helpModal.classList.add('hidden'), 500);
+        });
+        document.getElementById('copy-script-btn').addEventListener('click', () => {
+            navigator.clipboard.writeText(document.getElementById('roblox-script').textContent);
+            const btn = document.getElementById('copy-script-btn');
+            btn.innerHTML = `<i data-lucide="check" class="w-3 h-3"></i> Copied`;
+            setTimeout(() => btn.innerHTML = `<i data-lucide="copy" class="w-3 h-3"></i> Copy Code`, 2000);
+        });
+
+        // --- V10 Script Generator (Smart Attributes) ---
+        function updateRobloxScript() {
+            const windVal = parseFloat(document.getElementById('wind-speed').value) || 1.0;
+            const framesVal = document.querySelector('input[name="frame-count"]:checked').value;
+            // Base speed 0.04 (25fps)
+            const delay = (0.04 / windVal).toFixed(3);
+
+            const scriptCode = `-- V10 Smart Attribute Script
+-- 1. Create a Model in Workspace
+-- 2. Add attributes to Model: 'Speed' (Number), 'Frames' (Number)
+-- 3. Paste this script inside the Model
+
+local model = script.Parent
+local frames = {}
+
+-- DEFAULTS (Overridden by Attributes if set)
+local FRAME_COUNT = model:GetAttribute("Frames") or ${framesVal}
+local SPEED = model:GetAttribute("Speed") or ${delay}
+
+-- Cache Meshes
+for _, child in ipairs(model:GetChildren()) do
+    local num = tonumber(child.Name)
+    if child:IsA("MeshPart") and num then
+        frames[num] = child
+        child.Transparency = 1 
+        child.CanCollide = false
+        child.CastShadow = false
+    end
+end
+
+-- Anti-Flicker Loop
+if frames[1] then frames[1].Transparency = 0 end
+
+while true do
+    -- Dynamic Attribute Update (allows runtime editing)
+    SPEED = model:GetAttribute("Speed") or SPEED
+    
+    for i = 1, FRAME_COUNT do
+        task.wait(SPEED)
+        
+        local currentIdx = i
+        local nextIdx = (i % FRAME_COUNT) + 1
+        
+        if frames[nextIdx] then frames[nextIdx].Transparency = 0 end
+        if frames[currentIdx] then frames[currentIdx].Transparency = 1 end
+    end
+end`;
+            
+            document.getElementById('roblox-script').textContent = scriptCode;
+        }
+
+        // --- V10 Export Engine (CPU Replica of Harmonic Shader) ---
+        function getWavedPositions(geom, phase) {
+            const pos = geom.attributes.position;
+            const uv = geom.attributes.uv; 
+            const dep = uniforms.uDepth.value;
+            // uSpeed ignored for export to guarantee normalized cycle
+            
+            const result = new Float32Array(pos.count * 3);
+            for(let i=0; i<pos.count; i++){
+                const x = pos.getX(i);
+                const y = pos.getY(i);
+                const z = pos.getZ(i);
+                const u = uv.getX(i); 
+
+                // EXACT MATH FROM VERTEX SHADER
+                // Replace uTime * speedMod with phase
+                
+                // Layer 1
+                let wave1 = Math.sin(x * 1.5 + phase) * 0.15;
+                // Layer 2 (Multiplier 3.0)
+                let flutter = Math.sin(x * 5.0 + phase * 3.0) * 0.04 * Math.pow(u, 2.0);
+                // Layer 3 (Multiplier 2.0)
+                let turb = Math.sin(x * 3.0 + phase * 2.0 + y) * 0.02;
+
+                let combined = (wave1 + flutter + turb) * dep * u;
+                let lift = Math.sin(x + phase) * 0.03 * dep * u;
+                
+                result[i*3] = x;
+                result[i*3+1] = y + lift;
+                result[i*3+2] = z + combined;
+            }
+            return result;
+        }
+
+        function download(content, name, mime) {
+            const blob = new Blob([content], {type: mime});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = name;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        document.getElementById('download-mesh').addEventListener('click', () => {
+            let tempMat = new THREE.MeshStandardMaterial({ 
+                color:0xffffff, side: THREE.DoubleSide,
+                roughness: 0.5, metalness: 0.1 // Default export material
+            });
+            if(material.uniforms.uTexture.value) tempMat.map = material.uniforms.uTexture.value;
+
+            if (currentMode === 'stop-motion') {
+                const framesSelected = document.querySelector('input[name="frame-count"]:checked').value;
+                const frameCount = parseInt(framesSelected);
+                const exportGroup = new THREE.Group();
+                exportGroup.name = "Flag_Sequence";
+
+                for(let i=0; i<frameCount; i++) {
+                    const phase = (i / frameCount) * Math.PI * 2; 
+                    const bakedPos = getWavedPositions(flagMesh.geometry, phase);
+                    const frameMesh = new THREE.Mesh(flagMesh.geometry.clone(), tempMat);
+                    frameMesh.geometry.setAttribute('position', new THREE.BufferAttribute(bakedPos, 3));
+                    frameMesh.name = (i+1).toString(); 
+                    exportGroup.add(frameMesh);
+                }
+                
+                new THREE.GLTFExporter().parse(exportGroup, (gltf) => {
+                    download(JSON.stringify(gltf), `flag_v10_seq_${frameCount}.gltf`, 'application/json');
+                });
+            } 
+            else {
+                let exportMesh = new THREE.Mesh(flagMesh.geometry.clone(), tempMat);
+                exportMesh.name = "FlagMesh";
+                const frameCount = 30; // High fidelity loop
+                exportMesh.geometry.morphAttributes.position = [];
+                exportMesh.morphTargetInfluences = [];
+
+                for(let i=0; i<frameCount; i++) {
+                    const phase = (i / frameCount) * Math.PI * 2; 
+                    const positions = getWavedPositions(flagMesh.geometry, phase);
+                    const attr = new THREE.BufferAttribute(positions, 3);
+                    attr.name = `Frame_${i}`;
+                    exportMesh.geometry.morphAttributes.position.push(attr);
+                    exportMesh.morphTargetInfluences.push(0); 
+                }
+                
+                const times = [], values = [];
+                for (let i = 0; i <= frameCount; i++) {
+                    times.push(i * (1.0/frameCount)); 
+                    for(let j=0; j<frameCount; j++) values.push(j === (i % frameCount) ? 1 : 0);
+                }
+                
+                const track = new THREE.NumberKeyframeTrack('.morphTargetInfluences', times, values);
+                const clip = new THREE.AnimationClip('FlagLoop', -1, [track]);
+                
+                new THREE.GLTFExporter().parse(exportMesh, (gltf) => {
+                    download(gltf, 'flag_v10_smooth.glb', 'application/octet-stream');
+                }, { binary: true, animations: [clip] });
+            }
+        });
+
+        // --- Loop ---
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            uniforms.uTime.value = clock.getElapsedTime();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = () => {
+            setTimeout(() => {
+                document.getElementById('loader').classList.add('hidden-loader');
+                animate();
+            }, 1200);
+        };
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
